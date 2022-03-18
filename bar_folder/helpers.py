@@ -1,23 +1,43 @@
-# %%
 
-import sudoku_net
-import sudoku_plotting
-import matplotlib.pyplot as plt
 import numpy as np
-import logging
-import pickle
-import os
+from PIL import Image, ImageDraw, ImageFont
+from matplotlib import font_manager
 
-# if __name__ == '__main__':
 
-logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',
-                    level=logging.INFO, datefmt='%H:%M:%S')
+# RGB values for the colors used in the output graphic
+green =     (0, 105, 0)
+red =       (150, 0, 0)
+dark_grey = (200, 200, 200)
+black =     (0,0,0)
+white =     (255,255,255)
+
+font = font_manager.FontProperties(family='sans')
+#TODO: failsafe
+font_loc = font_manager.findfont(font)
+
+font_digits = ImageFont.truetype(font_loc, 18, encoding="unic")
+font_text = ImageFont.truetype(font_loc, 14, encoding="unic")
 
 
 def get_puzzle(puzzle_index):
+    """returns one of 8 sudoku configuration to be solved.
+
+    Args:
+        puzzle_index (int): index between 0 and 7 indicating the puzzle number
+
+    Returns:
+        np.array: array of shape (9,9) representing the puzzle configuration.
+        Array is zero wherever no input is given, and contains the corresponding
+        digit otherwise.
+    """
     init_config = None
 
+    if not 0 <= puzzle_index < 8:
+        raise ValueError(
+            "Cannot return puzzle - index must be between 0 and 7!")
+
     if puzzle_index == 0:
+        # Dream problem: make the network come up with a valid sudoku without any restrictions
         init_config = np.zeros((9, 9), dtype=np.uint8)
     elif puzzle_index == 1:
         # Diabolical problem:
@@ -116,137 +136,117 @@ def get_puzzle(puzzle_index):
     return np.array(init_config)
 
 
-def validate_solution(matrix):
 
-    cells = np.ones((3, 3), dtype=bool)
+
+
+def validate_solution(solution):
+    """validate a proposed solution for a sudoku field
+
+    Args:
+        solution (np.array): array of shape (9,9) containing integers between
+        1 and 9
+
+    Returns:
+        (bool, np.array, np.array, np.array): tuple of values that indicate validity
+        of the solution: 
+        1. True if the overall solution is valid, False otherwise.
+        2. boolean array of shape (3,3) that is True wherever a 3x3 box is valid
+        3. boolean array of shape (9,) encoding the validity of all rows  
+        4. boolean array of shape (9,) encoding the validity of all columns  
+    """
+
+    boxes = np.ones((3, 3), dtype=bool)
     rows = np.ones(9, dtype=bool)
     cols = np.ones(9, dtype=bool)
 
     expected_numbers = np.arange(1, 10)
 
+    # validate boxes
     for i in range(3):
         for j in range(3):
-            box = matrix[3*i:3*i+3, 3*j:3*j+3]
+            box = solution[3*i:3*i+3, 3*j:3*j+3]
             if len(np.setdiff1d(expected_numbers, box)) > 0:
-                cells[i, j] = False
+                boxes[i, j] = False
 
+    # validate rows and columns
     for i in range(9):
-        if len(np.setdiff1d(expected_numbers, matrix[i, :])) > 0:
+        if len(np.setdiff1d(expected_numbers, solution[i, :])) > 0:
             rows[i] = False
-        if len(np.setdiff1d(expected_numbers, matrix[:, i])) > 0:
+        if len(np.setdiff1d(expected_numbers, solution[:, i])) > 0:
             cols[i] = False
 
-    valid = cells.all() and rows.all() and cols.all()
+    # validate overall solution
+    valid = boxes.all() and rows.all() and cols.all()
 
-    return valid, cells, rows, cols
-
-
-# %%
-
-net = sudoku_net.SudokuNet(n_digit=5)
-max_sim_time = 10000
-sim_time = 100
-max_runs = max_sim_time//sim_time
-max_repeats = 1
-num_puzzles = 6
-plot_outputs = False
-
-noise_rates = np.arange(0,600,50)
+    return valid, boxes, rows, cols
 
 
-performance = np.zeros((len(noise_rates), num_puzzles * max_repeats))
 
-for index, rate in enumerate(noise_rates):
-    net.set_noise_rate(rate)
-    logging.info(f"repeating experiments with new noise frequency: {rate}")
 
-    for puzzle in range(num_puzzles):
 
-        net.reset()
-        config = get_puzzle(puzzle)
-        net.set_input_config(config)
 
-        for repeat in range(max_repeats):
-            logging.info(f"simulating rate {rate}, puzzle {puzzle}, rep {repeat}...")
-            run = 0
-            valid = False
-            repeat_solution = 0
 
-            net.reset_V_m()
 
-            while not valid:
-                net.reset_spike_recorders()
-                net.run(sim_time)
-                spikes = net.get_spike_trains()
-                solution = np.zeros((9, 9))
 
-                recorder_positions = net.stim_matrix
 
-                for row in range(9):
-                    for col in range(9):
-                        positions = recorder_positions[row, col]
 
-                        cell_spikes = spikes[positions]
-                        rates = np.array([len(s["times"]) for s in cell_spikes])
 
-                        winning_digit = int(np.random.choice(np.flatnonzero(rates == rates.max()))) + 1
-                        solution[row,col] = winning_digit
 
-                valid, cells, rows, cols = validate_solution(solution)
-                
-                if not valid:
-                    ratio_correct = (np.sum(cells) + np.sum(rows) + np.sum(cols)) / 27
-                    logging.debug(f"performance: {ratio_correct}")
-                else:
-                    logging.info("valid solution found, simulation complete.")
 
-                if plot_outputs:
-                    img = sudoku_plotting.plot_field(solution, cells, rows, cols)
-                    img.save(f"puzzle_{str(puzzle)}_rep_{str(repeat).zfill(2)}_{str(run).zfill(3)}.png")
-                
-                run += 1
-                if run >= max_runs:
-                    run = -1
-                    logging.info(
-                        f"no solution was found after {max_runs} iterations - aborting")
-                    break
+
+
+
+
+
+
+
+
+
+
+
+
+
+def plot_field(solution, with_color=False):
+    background = np.full((200, 200, 3), 255, dtype=np.uint8) # white background
+    field_ar = np.full((180, 180, 3), 255, dtype=np.uint8)
+
+    #color in boxes in a checkerboard pattern
+    for i in range(3):
+        for j in range(3):
+            if (i+j) % 2 == 0:
+                field_ar[i*60:i*60+60, j*60:j*60+60] = dark_grey
+
+    # draw the frames between cells in black
+    for i in range(8):
+        for j in range(8):
+            field_ar[i*20+19:i*20+21,:] = black
+            field_ar[:,j*20+19:j*20+21] = black
+
+    field = Image.fromarray(field_ar)
+    draw = ImageDraw.Draw(field)
+
+    if with_color:
+        valid, boxes, rows, cols = validate_solution(solution)        
+        # color in rows and columns in the background
+        for i in range(9):
+            background[i*20+17:i*20+23,:] = green if rows[i] else red
             
-            performance[index, puzzle * max_repeats + repeat] = run
-        
-#%%
-fig = plt.figure()
+            background[:,i*20+17:i*20+23] = green if cols[i] else red
 
-mean_durations = []
+        for i in range(9):
+            for j in range(9):
+                if solution[i,j] > 0:
+                    color = green if boxes[i//3, j//3] else red
+                    draw.text((j*20+4, i*20), str(solution[i, j]), color, font_digits)
+    else:
+        for i in range(9):
+            for j in range(9):
+                if solution[i,j] > 0:
+                    draw.text((j*20+4, i*20), str(solution[i, j]), black, font_digits)
 
-success = []
+    # create outside frame for the sudoku field
+    background[8:192,8:192,:] = 0
 
-for puzzle in performance:
-    foo = np.where(puzzle != -1.)
-    mean_durations.append(puzzle[foo].mean()*sim_time)
-    success.append(len(foo[0])/(max_repeats*num_puzzles))
-
-
-fig, ax1 = plt.subplots()
-
-
-ax1.plot(noise_rates, mean_durations, 'b:', label="mean convergence time")
-ax1.set_ylabel("convergence time (ms)")
-ax1.set_xticks(noise_rates)
-ax1.set_ylim(0, 2000)
-#ax.set_title("mean convergence time (ms)")
-
-ax2 = ax1.twinx()
-ax2.plot(noise_rates, success, 'r:', label = "likelihood of converging" )
-ax2.set_ylabel("likelihood")
-
-ax2.set_ylim(0, 1.1)
-fig.legend()
-
-
-# %%
-plt.savefig("sudoku_convergence_1.png")
-# %%
-with open("results.pkl", "wb") as f:
-    pickle.dump(performance, f)
-
-# %%
+    background = Image.fromarray(background)
+    background.paste(field, (10, 10))
+    return background
