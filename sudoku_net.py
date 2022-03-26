@@ -31,19 +31,21 @@ The functionality of the network lies entirely within the inhibitory
 connections between neuron populations. each population of size ``n_digit``
 encodes a digit between 1 and 9 in one of the 81 cells and has outgoing 
 inhibitory connections to several other populations. Namely all populations
-coding for the same digit in the same row, column and 3x3 box of the sudoku field,
-since a given digit can only ever occur once in any of those three. It also inhibits
-all populations in the same cell which code for different digits to force the network
-to converge on a single digit per cell.
+coding for the same digit in the same row, column and 3x3 box of the sudoku 
+field, since a given digit can only ever occur once in any of those three. It 
+also inhibits all populations in the same cell which code for different digits 
+to force the network to converge on a single digit per cell.
 
-If the network is simulated with just this configuration and some background noise,
-it converges naturally on states that represent valid solutions for Sudoku.
+If the network is simulated with just this configuration and some background 
+noise, it converges naturally on states that represent valid solutions for 
+Sudoku.
 
-If populations coding for specific digits in some of the cells are stimulated externally 
-(therefore inhibiting all other digits in the same cell), the network usually converges 
-on a solution compatible with the input configuration, thus solving the puzzle.
+If populations coding for specific digits in some of the cells are stimulated 
+externally (therefore inhibiting all other digits in the same cell), the 
+network usually converges on a solution compatible with the input 
+configuration, thus solving the puzzle.
 
-:Authors: J Gille
+:Authors: J Gille, S Furber, A Rowley
 """
 import nest
 import numpy as np
@@ -71,22 +73,20 @@ neuron_params = {
 
 class SudokuNet:
 
-    def __init__(self, n_population=5, noise_rate=350., stim_rate=200., input=None):
+    def __init__(self, pop_size=5, noise_rate=350., stim_rate=200., input=None):
         self.stim_rate = stim_rate          # frequency for input generators
-        self.n_population = n_population    # number of neurons per population
-        self.n_cell = 9 * self.n_population # number of neurons per cell
+        self.pop_size = pop_size            # number of neurons per population
+        self.n_cell = 9 * self.pop_size     # number of neurons per cell
         self.n_total = self.n_cell * 9 * 9  # total number of neurons
-
         # number of neuron populations (rows*columns*digits)
         self.n_populations = 9 ** 3
 
         logging.info("Creating neuron populations...")
-        self.neurons = nest.Create('iaf_psc_exp', self.n_total,
-                                   params=neuron_params)
+        self.neurons = nest.Create(
+            'iaf_psc_exp', self.n_total, params=neuron_params)
 
         logging.info("Setting up noise...")
-        self.noise = nest.Create("poisson_generator", 1,
-                                 {"rate": noise_rate})
+        self.noise = nest.Create("poisson_generator", 1, {"rate": noise_rate})
         nest.Connect(self.noise, self.neurons, 'all_to_all',
                      {'synapse_model': 'static_synapse', "delay": delay,
                       'weight': weight_noise})
@@ -102,11 +102,11 @@ class SudokuNet:
         # for easy access during connection setup.
         # Dimensions: (row, column, digit value, individual neuron)
         self.neuron_indices = np.reshape(np.arange(self.n_total),
-                                         (9, 9, 9, self.n_population))
+                                         (9, 9, 9, self.pop_size))
 
         # Matrix that stores indices of inputs and outputs of the network
-        # (stimulation sources and spike recorders) to be connected to the neurons.
-        # Dimensions: (row, column, digit value)
+        # (stimulation sources and spike recorders) to be connected to the
+        # neurons. Dimensions: (row, column, digit value)
         self.io_indices = np.reshape(np.arange(self.n_populations), (9, 9, 9))
 
         logging.info("Creating inter-neuron and IO-connections...")
@@ -120,7 +120,8 @@ class SudokuNet:
             box_row_end = box_row_start + 3
 
             for column in range(9):
-                # A mask for indexing the id_matrix while excluding the current column
+                # A mask for indexing the id_matrix while excluding the current
+                # column.
                 col_mask = np.ones(9, dtype=bool)
                 col_mask[column] = False
 
@@ -128,7 +129,8 @@ class SudokuNet:
                 box_col_start = (column // 3) * 3
                 box_col_end = box_col_start + 3
 
-                # obtain the surrounding 3x3 box and remove the neurons of the current cell from it
+                # obtain the surrounding 3x3 box and remove the neurons of the
+                # current cell from it
                 current_box = self.neuron_indices[box_row_start:box_row_end,
                                                   box_col_start:box_col_end]
                 box_mask = np.ones((3, 3), dtype=bool)
@@ -139,22 +141,23 @@ class SudokuNet:
                     digit_mask = np.ones(9, dtype=bool)
                     digit_mask[digit] = False
 
-                    # neuron population coding for the current row, column and digit
+                    # population coding for the current row, column and digit
                     sources = self.neuron_indices[row, column, digit]
 
-                    # all neurons in the same row coding for the same digit except those in the current cell
+                    # populations in the same row coding for the same digit
+                    # except those in the current cell
                     row_targets = self.neuron_indices[row, col_mask, digit]
                     # same as above for the current column
                     col_targets = self.neuron_indices[row_mask, column, digit]
-                    # all neurons coding for the same digit in the current 3x3 box
+                    # populations coding for the same digit in the current box
                     box_targets = current_box[:, digit]
 
-                    # all neurons coding for different digits in the current cell
-                    digit_targets = self.neuron_indices[row,
-                                                        column, digit_mask]
+                    # neurons coding for different digits in the current cell
+                    digit_targets = self.neuron_indices[row, column, digit_mask]
 
-                    targets = np.concatenate((row_targets, col_targets, box_targets, digit_targets),
-                                             axis=None)
+                    targets = np.concatenate(
+                        (row_targets, col_targets, box_targets, digit_targets),
+                        axis=None)
                     # Remove duplicates to avoid multapses
                     targets = np.unique(targets)
 
@@ -163,17 +166,22 @@ class SudokuNet:
                     targets = self.neurons[targets]
 
                     # Create inhibitory connections
-                    nest.Connect(sources, targets, 'all_to_all', {'synapse_model': 'static_synapse',
-                                                                  "delay": delay, 'weight': inter_neuron_weight})
-
-                    # connect the stimulation source to neurons at the current position
-                    # stimulation weights are initialized to 0 and altered in set_input_config()
-                    nest.Connect(self.stim[self.io_indices[row, column, digit]], sources,
-                                 'all_to_all', {"delay": delay, "weight": 0.})
-
-                    # connect all neurons at the current position to the same spike_recorder
                     nest.Connect(
-                        sources, self.spikerecorders[self.io_indices[row, column, digit]])
+                        sources, targets, 'all_to_all',
+                        {'synapse_model': 'static_synapse', "delay": delay,
+                         'weight': inter_neuron_weight})
+
+                    # connect the stimulation source to the current population.
+                    # Weights are initialized to 0 and altered in
+                    # set_input_config()
+                    nest.Connect(
+                        self.stim[self.io_indices[row, column, digit]],
+                        sources, 'all_to_all', {"delay": delay, "weight": 0.})
+
+                    # connect current population to a single spike_recorder
+                    nest.Connect(
+                        sources, self.spikerecorders
+                        [self.io_indices[row, column, digit]])
 
         if input is not None:
             logging.info("setting input...")
@@ -187,8 +195,8 @@ class SudokuNet:
         nest.GetConnections(self.stim).set({"weight": 0.})
 
     def set_input_config(self, input):
-        """sets the connection weights from poisson generators to neuron populations in order
-        to stimulate the network according to a puzzle configuration.
+        """sets the connection weights from stimulation sources to populations 
+        in order to stimulate the network according to a puzzle configuration.
 
         Args:
             input (np.array): a np.array of shape (9,9) where each entry is the value of the corresponding

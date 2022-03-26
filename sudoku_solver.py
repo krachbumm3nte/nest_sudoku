@@ -32,25 +32,27 @@ the network converges within the specified timeframe. If it does
 not, the output indicates which of the rows, columns and boxes
 are valid, by coloring them either green or red.
 
-
+Credit to the original SpiNNaker implementation of the network used here goes 
+to Steve Furber and Andrew Rowley from the University of Manchester. 
 
 See Also
 ---------
-`Original implementation of this Network on SpiNNaker<https://github.com/SpiNNakerManchester/IntroLab/tree/master/sudoku>`_
+`Original implementation of this Network on SpiNNaker
+<https://github.com/SpiNNakerManchester/IntroLab/tree/master/sudoku>`_
 :doc:`network class <sudoku_net.py>`
 :doc:`script for generating output gifs <plot_progress.py>`
+:doc:`helper functions <helpers.py>`
 
 Notes
 ------
 Terminology used in variable names and documentation:
-cell:       One of the 81 squares in the sudoku field
-box:        one of the collections of 3x3 squares necessary to solve a Sudoku
+cell:       One of the 81 squares that make up the sudoku field
+box:        One of the 9 collections of 3x3 cells necessary to solve a Sudoku
 digit:      Number between 1 and 9
-population: collection of neurons coding for a single digit in a cell 
+population: Collection of neurons coding for a single digit in a cell 
 
-:Authors: J Gille
+:Authors: J Gille, S Furber, A Rowley
 """
-
 import nest
 import sudoku_net
 import numpy as np
@@ -68,10 +70,8 @@ sim_time = 100
 max_sim_time = 10000
 max_iterations = max_sim_time//sim_time
 
-
 puzzle = get_puzzle(puzzle_index)
-network = sudoku_net.SudokuNet(
-    n_population=5, input=puzzle, noise_rate=noise_rate)
+network = sudoku_net.SudokuNet(pop_size=5, input=puzzle, noise_rate=noise_rate)
 
 solution_states = np.zeros((max_iterations, 9, 9), dtype=int)
 
@@ -79,7 +79,6 @@ run = 0
 valid = False
 
 while not valid:
-
     network.reset_spike_recorders()
     nest.Simulate(sim_time)
 
@@ -102,8 +101,7 @@ while not valid:
     valid, cells, rows, cols = validate_solution(puzzle, solution)
 
     if not valid:
-        ratio_correct = (
-            np.sum(cells) + np.sum(rows) + np.sum(cols)) / 27
+        ratio_correct = (np.sum(cells) + np.sum(rows) + np.sum(cols)) / 27
         logging.info(f"{run*sim_time}ms, performance: {ratio_correct}")
     else:
         logging.info(f"run {run*sim_time}ms, valid solution found.")
@@ -111,8 +109,7 @@ while not valid:
 
     run += 1
     if run >= max_iterations:
-        logging.info(
-            f"no solution found after {max_iterations} iterations.")
+        logging.info(f"no solution found after {max_iterations} iterations.")
         break
 
 out_image = plot_field(puzzle, solution, True)

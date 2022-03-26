@@ -19,10 +19,10 @@
 # You should have received a copy of the GNU General Public License
 # along with NEST.  If not, see <http://www.gnu.org/licenses/>.
 
-r"""Helper functions for validating and plotting
+r"""Helper functions for the sudoku solver
 ----------------------------------------------------------------
 
-:Authors: J Gille
+:Authors: J Gille, S Furber, A Rowley
 """
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -64,7 +64,8 @@ def get_puzzle(puzzle_index):
             "Cannot return puzzle - index must be between 0 and 7!")
 
     if puzzle_index == 0:
-        # Dream problem: make the network come up with a valid sudoku without any restrictions
+        # Dream problem: make the network come up with a valid sudoku without
+        # any restrictions
         init_config = np.zeros((9, 9), dtype=np.uint8)
     elif puzzle_index == 1:
         # Diabolical problem:
@@ -164,15 +165,17 @@ def get_puzzle(puzzle_index):
 
 
 def validate_solution(puzzle, solution):
-    """validate a proposed solution for a sudoku field
+    """validate a proposed solution for a sudoku puzzle
 
     Args:
-        puzzle (np.array): array of shape (9,9) encoding the puzzle. see get_puzzle().
-        solution (np.array): array of shape (9,9) encoding the solution to the puzzle
+        puzzle (np.array): array of shape (9,9) encoding the puzzle. 
+        see get_puzzle().
+        solution (np.array): array of shape (9,9) encoding the proposed 
+        solution.
 
     Returns:
-        (bool, np.array, np.array, np.array): tuple of values that indicate validity
-        of the solution: 
+        (bool, np.array, np.array, np.array): tuple of values that indicate 
+        the validity of the solution: 
         1. True if the overall solution is valid, False otherwise.
         2. boolean array of shape (3,3) that is True wherever a 3x3 box is valid
         3. boolean array of shape (9,) encoding the validity of all rows  
@@ -200,15 +203,19 @@ def validate_solution(puzzle, solution):
             cols[i] = False
 
     # It is possible (in rare cases), that the network finds a valid
-    # solution that does not conform to the initial puzzle configuration.
-    # This is taken care of here.
+    # solution that does not conform to the initial puzzle configuration, i.e.
+    # one of the cells where input is applied, is overridden by the rest of the
+    # network. This is taken care of here.
     input_cells = np.where(puzzle != 0)
     puzzle_matched = puzzle[input_cells] == solution[input_cells]
 
-    # validate overall solution
+    # overall solution is valid iff all of the components are.
     valid = boxes.all() and rows.all() and cols.all() and puzzle_matched.all()
 
     return valid, boxes, rows, cols
+
+###############################################################################
+# The next few parameters
 
 
 cell_size = 18  # inner size of the cell
@@ -222,15 +229,17 @@ image_size = field_size + 2*frame_width
 
 
 def plot_field(puzzle, solution, with_color=False):
-    """generates a graphical representation of a sudoku field.
+    """generates a graphical representation of a sudoku field. Digits that are
+    given by the puzzle are represented as bold and black, while calculated
+    digits are represented in grey and italic.
 
     Args:
-        puzzle (np.array): array of shape (9,9) that represents a puzzle to be 
-        solved. See get_puzzle()
-        solution (np.array): 9x9 array representing the sudoku field
-        with_color (bool, optional): if True, green and red are used to indicate which 
-        parts of the sudoku field are valid and which are not. Otherwise, only black
-        and white are used. Defaults to False.
+        puzzle (np.array): array of shape (9,9) that represents the puzzle 
+        that is being solved. See get_puzzle()
+        solution (np.array): array of shape (9,9) representing the solution.
+        with_color (bool, optional): if True, green and red are used to 
+        indicate which parts of the solution are valid and which are not. 
+        Otherwise, only black and white are used. Defaults to False.
 
     Returns:
         PIL.Image: A visual representation of the sudoku solution.
@@ -256,44 +265,44 @@ def plot_field(puzzle, solution, with_color=False):
 
     if with_color:
         valid, boxes, rows, cols = validate_solution(puzzle, solution)
-        # draw a red or green line in the background to indicate validity of rows and columns
+        # draw a red or green line in the background to indicate validity of
+        # all rows and columns
         for i in range(9):
             cell_center = (i + 1) * cell_step
-            background[cell_center-3:cell_center +
-                       3, :] = white if rows[i] else red
+            background[cell_center - 3:
+                       cell_center + 3] = white if rows[i] else red
 
-            background[:, cell_center-3: cell_center +
-                       3] = white if cols[i] else red
+            background[:, cell_center - 3:
+                       cell_center + 3] = white if cols[i] else red
 
+        # draw a red frame around boxes that are not valid
         for i in range(3):
             for j in range(3):
                 if not boxes[i, j]:
-                    draw.rectangle([3*j*cell_step+grid_width, 3*i*cell_step+grid_width,
-                                   3*(j+1)*cell_step, 3*(i+1)*cell_step], outline=red, width=2)
+                    draw.rectangle([3 * j * cell_step + grid_width,
+                                    3 * i * cell_step + grid_width,
+                                    3 * (j + 1) * cell_step,
+                                    3 * (i + 1) * cell_step],
+                                   outline=red, width=2)
 
-        # write the digits into the cells.
-        for i in range(9):
-            for j in range(9):
-                if 1 <= solution[i, j] <= 9:
-                    if puzzle[i, j] != 0:
-                        if solution[i, j] == puzzle[i, j]:
-                            color = black
-                        else:
-                            # If the network proposes a solution where a digit from the
-                            # input configuration is altered, that digit is colored in red
-                            color = red
-                        draw.text((j*cell_step+5, i*cell_step+1),
-                                  str(solution[i, j]), color, font_bold)
+    # write the digits into the cells.
+    for i in range(9):
+        for j in range(9):
+            if 1 <= solution[i, j] <= 9:
+                if puzzle[i, j] != 0:
+                    if solution[i, j] == puzzle[i, j]:
+                        color = black
                     else:
-                        color = dark_grey
-                        draw.text((j*cell_step+5, i*cell_step+1),
-                                  str(solution[i, j]), color, font_italic)
-    else:
-        for i in range(9):
-            for j in range(9):
-                if solution[i, j] > 0:
+                        # If the network proposes a solution where a digit
+                        # from the input configuration is altered, that
+                        # digit is colored in red.
+                        color = red
                     draw.text((j*cell_step+5, i*cell_step+1),
-                              str(solution[i, j]), black, font_bold)
+                              str(solution[i, j]), color, font_bold)
+                else:
+                    color = dark_grey
+                    draw.text((j*cell_step+5, i*cell_step+1),
+                              str(solution[i, j]), color, font_italic)
 
     background = Image.fromarray(background)
     background.paste(field, (frame_width, frame_width))
