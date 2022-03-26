@@ -5,3 +5,4 @@
 /spatial_network_test.py
 /sudoku.py
 /sudoku_nest.py
+__pycache__
