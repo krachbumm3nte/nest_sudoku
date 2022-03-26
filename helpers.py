@@ -22,13 +22,11 @@
 r"""Helper functions for validating and plotting
 ----------------------------------------------------------------
 
-
 :Authors: J Gille
 """
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from matplotlib import font_manager
-import logging
 
 # RGB values for the colors used in the generated images
 green = (0, 115, 0)
@@ -281,7 +279,7 @@ def plot_field(puzzle, solution, with_color=False):
                         if solution[i, j] == puzzle[i, j]:
                             color = black
                         else:
-                            # If the network proposes a solution where a digit from the 
+                            # If the network proposes a solution where a digit from the
                             # input configuration is altered, that digit is colored in red
                             color = red
                         draw.text((j*cell_step+5, i*cell_step+1),

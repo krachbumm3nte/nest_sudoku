@@ -59,19 +59,19 @@ import pickle
 from helpers import get_puzzle, validate_solution, plot_field
 
 nest.SetKernelStatus({'local_num_threads': 8})
-nest.SetKernelStatus({'rng_seed': 2})
 nest.set_verbosity("M_WARNING")
 logging.basicConfig(level=logging.INFO)
 
-puzzle_index = 3
-noise_rate = 10
+puzzle_index = 4
+noise_rate = 350
 sim_time = 100
 max_sim_time = 10000
 max_iterations = max_sim_time//sim_time
 
 
 puzzle = get_puzzle(puzzle_index)
-network = sudoku_net.SudokuNet(n_population=5, input=puzzle, noise_rate=noise_rate)
+network = sudoku_net.SudokuNet(
+    n_population=5, input=puzzle, noise_rate=noise_rate)
 
 solution_states = np.zeros((max_iterations, 9, 9), dtype=int)
 
@@ -115,7 +115,7 @@ while not valid:
             f"no solution found after {max_iterations} iterations.")
         break
 
-out_image = plot_field(puzzle, solution, not valid)
+out_image = plot_field(puzzle, solution, True)
 out_image.show()
 out_image.save("sudoku_solution.png")
 
