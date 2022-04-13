@@ -27,7 +27,7 @@ of the network solving the puzzle.
 
 Note that the script generates the images individually, storing
 them to disk first, assembling them into a GIF and then,
-by default, deletes the images and folder.
+by default, deleting the images and folder.
 
 For creating the images, PIL is required
 Because the GIF creation tool in PIL is faulty,
@@ -70,9 +70,7 @@ solution_states = simulation_data["solution_states"]
 image_count = 0
 
 
-for i in range(8):
-    field = plot_field(
-        simulation_data['puzzle'], simulation_data['puzzle'], False)
+field = plot_field(simulation_data['puzzle'], simulation_data['puzzle'], False)
 
 
 for i in range(len(solution_states)):
