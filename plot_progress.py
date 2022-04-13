@@ -48,9 +48,9 @@ from helpers import plot_field
 import sys
 
 in_file = "350Hz_puzzle_4.pkl"  # Name of the .pkl file to read from
-temp_dir = "tmp"                    # Name of directory for temporary files
-out_file = "sudoku.gif"             # Name of the output GIF
-keep_temps = False          # If False, temporary files are deleted after GIF creation
+temp_dir = "tmp"                # Name of directory for temporary files
+out_file = "sudoku.gif"         # Name of the output GIF
+keep_temps = False              # If True, temporary files will not be deleted
 
 if os.path.exists(out_file):
     print(f"Target file ({out_file}) already exists! Aborting.")

@@ -102,20 +102,25 @@ while not valid:
 
     if not valid:
         ratio_correct = (np.sum(cells) + np.sum(rows) + np.sum(cols)) / 27
-        logging.info(f"{run*sim_time}ms, performance: {ratio_correct}")
+        logging.info(f"{run*sim_time}ms, performance: "
+                     f"{np.round(ratio_correct, 3)}")
     else:
-        logging.info(f"run {run*sim_time}ms, valid solution found.")
+        logging.info(f"{run*sim_time}ms, valid solution found.")
         break
 
     run += 1
     if run >= max_iterations:
-        logging.info(f"no solution found after {max_iterations} iterations.")
+        logging.info(f"no solution found after {run*sim_time}ms, aborting.")
         break
 
+img_name = "sudoku_solution.png"
+logging.info(f"storing solution to: {img_name}...")
 out_image = plot_field(puzzle, solution, True)
 out_image.show()
-out_image.save("sudoku_solution.png")
+out_image.save(img_name)
 
+out_name = f"{noise_rate}Hz_puzzle_{puzzle_index}.pkl"
+logging.info(f"storing simulation data to {out_name}...")
 output = {}
 output["noise_rate"] = noise_rate
 output["sim_time"] = sim_time
@@ -123,5 +128,7 @@ output["max_sim_time"] = max_sim_time
 output["solution_states"] = solution_states[:run+1]
 output["puzzle"] = puzzle
 
-with open(f"{noise_rate}Hz_puzzle_{puzzle_index}.pkl", "wb") as f:
+with open(out_name, "wb") as f:
     pickle.dump(output, f)
+
+print("done.")

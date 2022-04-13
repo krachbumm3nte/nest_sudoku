@@ -9,6 +9,12 @@ from helpers import validate_solution, plot_field
 from glob import glob
 import imageio
 
+"""
+This file was hacked together to generate a very specific plot and does not 
+generalize at all. I strongly recommend disregarding this script!
+"""
+
+
 #%%
 
 # final output image size
