@@ -255,9 +255,8 @@ def plot_field(puzzle, solution, with_color=False):
 
     # draw the frames between cells in black
     for i in range(0, 10):
-        for j in range(0, 10):
-            field[i*cell_step:i*cell_step+grid_width, :] = black
-            field[:, j*cell_step:j*cell_step+grid_width] = black
+        field[i*cell_step:i*cell_step+grid_width, :] = black
+        field[:, i*cell_step:i*cell_step+grid_width] = black
 
     field = Image.fromarray(field)
     draw = ImageDraw.Draw(field)
@@ -296,12 +295,13 @@ def plot_field(puzzle, solution, with_color=False):
                         # from the input configuration is altered, that
                         # digit is colored in red.
                         color = red
-                    draw.text((j*cell_step+5, i*cell_step+1),
-                              str(solution[i, j]), color, font_bold)
+                    font = font_bold
                 else:
                     color = dark_grey
-                    draw.text((j*cell_step+5, i*cell_step+1),
-                              str(solution[i, j]), color, font_italic)
+                    font = font_italic
+                
+                draw.text((j*cell_step+5, i*cell_step+1),
+                            str(solution[i, j]), color, font)
 
     background = Image.fromarray(background)
     background.paste(field, (frame_width, frame_width))

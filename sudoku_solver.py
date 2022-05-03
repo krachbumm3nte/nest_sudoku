@@ -30,7 +30,7 @@ reached.
 The output shows the solved Sudoku puzzle in black and white if 
 the network converges within the specified timeframe. If it does
 not, the output indicates which of the rows, columns and boxes
-are valid, by coloring them either green or red.
+are invalid by highlighting them in red.
 
 Credit to the original SpiNNaker implementation of the network used here goes 
 to Steve Furber and Andrew Rowley from the University of Manchester. 
@@ -87,14 +87,18 @@ while not valid:
 
     for row in range(9):
         for col in range(9):
+            # obtain indices of the spike recorders coding for digits in
+            # the current cell
             spike_recorders = network.io_indices[row, col]
 
+            # spiketrains for all digits in the current cells
             cell_spikes = spiketrains[spike_recorders]
-            noise_rates = np.array(
+            spike_counts = np.array(
                 [len(s["times"]) for s in cell_spikes])
 
+            # if two digits have the same activation, pick one at random
             winning_digit = int(np.random.choice(
-                np.flatnonzero(noise_rates == noise_rates.max()))) + 1
+                np.flatnonzero(spike_counts == spike_counts.max()))) + 1
             solution[row, col] = winning_digit
 
     solution_states[run] = solution
@@ -114,7 +118,7 @@ while not valid:
         break
 
 img_name = "sudoku_solution.png"
-logging.info(f"storing solution to: {img_name}...")
+logging.info(f"storing final state to: {img_name}...")
 out_image = plot_field(puzzle, solution, True)
 out_image.show()
 out_image.save(img_name)
