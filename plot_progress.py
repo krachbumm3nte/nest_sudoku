@@ -29,7 +29,7 @@ Note that the script generates the images individually, storing
 them to disk first, assembling them into a GIF and then,
 by default, deleting the images and folder.
 
-For creating the individual images, PIL is required Because the GIF creation 
+For creating the individual images, PIL is used. Because the GIF creation 
 tool in PIL is faulty, imageio is required for that step.
 
 See Also
