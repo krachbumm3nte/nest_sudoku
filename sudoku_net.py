@@ -72,15 +72,16 @@ neuron_params = {
 
 
 class SudokuNet:
+    # number of neuron populations (rows*columns*digits)
+    n_populations = 9 ** 3
 
     def __init__(self, pop_size=5, noise_rate=350., stim_rate=200., input=None):
         self.stim_rate = stim_rate          # frequency for input generators
         self.pop_size = pop_size            # number of neurons per population
-        self.n_cell = 9 * self.pop_size     # number of neurons per cell
-        self.n_total = self.n_cell * 9 * 9  # total number of neurons
-        # number of neuron populations (rows*columns*digits)
-        self.n_populations = 9 ** 3
-
+        # total number of neurons
+        self.n_total = self.n_populations * self.pop_size 
+        
+        
         logging.info("Creating neuron populations...")
         self.neurons = nest.Create(
             'iaf_psc_exp', self.n_total, params=neuron_params)
