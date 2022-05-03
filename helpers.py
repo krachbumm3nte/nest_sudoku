@@ -36,13 +36,12 @@ dark_grey = (50, 50, 50)
 light_grey = (160, 160, 160)
 white = (255, 255, 255)
 
-font_b = font_manager.FontProperties(family='sans', weight='bold')
-font_it = font_manager.FontProperties(family='sans', style='italic')
-#TODO: failsafe
-font_loc_b = font_manager.findfont(font_b)
-font_loc_it = font_manager.findfont(font_it)
-
+font_prop_b = font_manager.FontProperties(family='sans', weight='bold')
+font_loc_b = font_manager.findfont(font_prop_b)
 font_bold = ImageFont.truetype(font_loc_b, 18, encoding="unic")
+
+font_prop_it = font_manager.FontProperties(family='sans', style='italic')
+font_loc_it = font_manager.findfont(font_prop_it)
 font_italic = ImageFont.truetype(font_loc_it, 18, encoding="unic")
 
 

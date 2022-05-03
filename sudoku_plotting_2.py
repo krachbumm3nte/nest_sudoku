@@ -28,9 +28,12 @@ dark_grey = (200, 200, 200)
 black = (0,0,0)
 white = (255,255,255)
 
-# TODO: generalize this
-font_loc = "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed.ttf"
-font_text = ImageFont.truetype(font_loc, 14, encoding="unic")
+font_name = "DejaVuSansCondensed.ttf"
+try:
+    font_text = ImageFont.truetype(font_name, 14, encoding="unic")
+except OSError:
+    print(f"Could not find font <{font_name}>, falling back to default font.")
+    font_text = ImageFont.load_default()
 
 green = (0, 105, 0)
 red = (150, 0, 0)
